@@ -19,7 +19,7 @@ usage: hw1.py [-h] [--method {bfs,astar,astar_corner,astar_multi,fast}] [--scale
 
 Examples of how to run HW1:
 ```
-python3 hw1.py bigMaze.txt --method bfs
+python3 hw1.py maps/single/bigMaze.txt --method bfs
 ```
 ```
 python3 hw1.py tinySearch.txt --scale 30 --fps 10 --human
