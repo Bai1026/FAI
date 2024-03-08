@@ -19,6 +19,8 @@ files and classes when code is run, so be careful to not modify anything else.
 # maze is a Maze object based on the maze from the file specified by input filename
 # searchMethod is the search method specified by --method flag (bfs,dfs,astar,astar_multi,fast)
 
+from collections import deque
+
 def search(maze, searchMethod):
     return {
         "bfs": bfs,
@@ -31,13 +33,35 @@ def search(maze, searchMethod):
 def bfs(maze):
     """
     Runs BFS for part 1 of the assignment.
-
     @param maze: The maze to execute the search on.
-
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
-    # TODO: Write your code here
-    return []
+    
+    start = maze.getStart()
+    goal = maze.getObjectives()[0]  # Assuming there's only one goal
+    
+    queue = deque([start])
+    visited = set([start])
+    path = {}
+
+    while queue:
+        current = queue.popleft()
+        if current == goal:
+            return reconstruct_path(path, start, goal)
+        for neighbor in maze.getNeighbors(*current):  # *current unpacks the tuple
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)
+                path[neighbor] = current
+    return []  # Return an empty list if no path is found
+
+
+def reconstruct_path(path, start, goal):
+    reverse_path = [goal]
+    while goal != start:
+        goal = path[goal]
+        reverse_path.append(goal)
+    return list(reversed(reverse_path))
 
 
 def astar(maze):
