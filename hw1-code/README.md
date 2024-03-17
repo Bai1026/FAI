@@ -22,7 +22,7 @@ Examples of how to run HW1:
 python3 hw1.py maps/single/bigMaze.txt --method bfs
 ```
 ```
-python3 hw1.py tinySearch.txt --scale 30 --fps 10 --human
+python3 hw1.py maps/multi/tinySearch.txt --scale 50 --fps 10 --human
 ```
 
 For help run:

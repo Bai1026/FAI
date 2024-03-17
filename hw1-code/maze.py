@@ -29,6 +29,7 @@ class Maze:
         self.__states_explored = 0
 
         with open(filename) as f:
+            print(filename)
             lines = f.readlines()
 
         lines = list(filter(lambda x: not re.match(r'^\s*$', x), lines))

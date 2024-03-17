@@ -70,5 +70,3 @@ class Agent():
             self.needsUpdate = True
             self.row += 1
 
-
-
