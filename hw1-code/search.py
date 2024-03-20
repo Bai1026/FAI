@@ -1,5 +1,8 @@
-from collections import deque
 import heapq
+from collections import deque
+# from Queue import PriorityQueue
+from queue import PriorityQueue
+from itertools import combinations
 
 def search(maze, searchMethod):
     return {
@@ -11,6 +14,7 @@ def search(maze, searchMethod):
     }.get(searchMethod)(maze)
 
 # -------------------------------------------- PART I --------------------------------------------
+"""pass all test data"""
 # ==================== This is for BFS ====================
 # This version can fit single dot, multi dots and corner problem
 def bfs(maze):
@@ -48,7 +52,7 @@ def reconstruct_path_bfs(path, start_state, goal_state):
 
 
 # ==================== This is for A* ====================
-    # use manhattan distance as our first heuristic function
+# use manhattan distance as our first heuristic function
 def manhattan_distance(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
@@ -94,6 +98,7 @@ def reconstruct_path(came_from, start, goal):
 
 
 # -------------------------------------------- PART II --------------------------------------------
+"""pass all test data"""
 def astar_corner(maze):
     start = maze.getStart()
     corners = maze.getObjectives()
@@ -119,7 +124,7 @@ def astar_corner(maze):
             
             if next_state not in cost_so_far or new_cost < cost_so_far[next_state]:
                 cost_so_far[next_state] = new_cost
-                priority = new_cost + heuristic(next_position, next_visited_corners, corners)
+                priority = new_cost + heuristic_corner(next_position, next_visited_corners, corners)
                 heapq.heappush(frontier, (priority, next_state))
                 came_from[next_state] = current_state
     
@@ -133,7 +138,8 @@ def update_visited_corners(position, visited_corners, corners):
             new_visited_corners[i] = True
     return tuple(new_visited_corners)
 
-def heuristic(position, visited_corners, corners):
+
+def heuristic_corner(position, visited_corners, corners):
     # 更新启发式函数，以考虑到所有未访问角落的距离
     unvisited_corners = [corners[i] for i, visited in enumerate(visited_corners) if not visited]
     if not unvisited_corners:
@@ -155,6 +161,7 @@ def reconstruct_path_corner(came_from, start, goal):
 
 
 # python3 hw1.py maps/corner/tinyCorners.txt --method astar_corner
+
 # -------------------------------------------- PART III --------------------------------------------
 def astar_multi(maze):
     """
@@ -165,9 +172,63 @@ def astar_multi(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
-    # TODO: Write your code here
-    return []
+    
+    """did not pass the mediumSearch.txt yet"""
 
+    start = maze.getStart()
+    food = maze.getObjectives()  # 这应返回所有食物位置的列表或集合
+    start_state = (start, tuple(sorted(food)))
+
+    frontier = []
+    heapq.heappush(frontier, (0, start_state))
+    came_from = {}
+    cost_so_far = {}
+    came_from[start_state] = None
+    cost_so_far[start_state] = 0
+
+    while frontier:
+        current = heapq.heappop(frontier)[1]
+
+        if not current[1]:  # 检查是否所有食物都已被吃掉
+            break
+
+        for next_position in maze.getNeighbors(*current[0]):
+            next_food = update_food(next_position, current[1])
+            next_state = (next_position, next_food)
+            new_cost = cost_so_far[current] + 1
+
+            if next_state not in cost_so_far or new_cost < cost_so_far[next_state]:
+                cost_so_far[next_state] = new_cost
+                priority = new_cost + heuristic_food(next_position, next_food)
+                heapq.heappush(frontier, (priority, next_state))
+                came_from[next_state] = current
+
+    return reconstruct_path_food(came_from, start_state, current)
+
+def update_food(position, food):
+    # 如果当前位置有食物，则从剩余食物中移除该位置
+    return tuple(f for f in food if f != position)
+
+def heuristic_food(position, food):
+    # 估算从当前位置到剩余所有食物的距离
+    # 这里简化为到最近食物的曼哈顿距离
+    if not food:
+        return 0
+    return min(manhattan_distance(position, f) for f in food) # manhattan distance is faster
+    # return min(euclidean_distance(position, f) for f in food)
+
+def reconstruct_path_food(came_from, start, goal):
+    # 重建路径
+    current = goal
+    path = []
+    while current != start:
+        path.append(current[0])
+        current = came_from[current]
+    path.append(start[0])  # 添加起始位置
+    path.reverse()  # 反转路径
+    return path
+
+# python3 hw1.py maps/multi/tinySearch.txt --method astar_multi
 
 # -------------------------------------------- PART IV --------------------------------------------
 def fast(maze):
@@ -178,8 +239,57 @@ def fast(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
-    # TODO: Write your code here
-    return []
+    """did not pass the bigSearch"""
+
+    # 初始化
+    start = maze.getStart()
+    food = maze.getObjectives()  # 获取所有食物的位置
+    path = []  # 存储最终的路径
+
+    while food:
+        closest_food = None
+        shortest_path = None
+        min_distance = float("inf")
+
+        # 找到最近的食物点
+        for f in food:
+            temp_path = bfs_fast(maze, start, f)
+            if temp_path and len(temp_path) < min_distance:
+                closest_food = f
+                shortest_path = temp_path
+                min_distance = len(temp_path)
+
+        if shortest_path is None:
+            break  # 如果没有路径可以到达任何食物点，则退出
+
+        # 更新路径和起点
+        path += shortest_path
+        start = closest_food
+        food.remove(closest_food)  # 移除已经到达的食物点
+
+    return path
+
+def bfs_fast(maze, start, goal):
+    # 广度优先搜索找到从start到goal的路径
+    queue = [(start, [])]  # 元素格式：(当前位置, 到达该位置的路径)
+    visited = set()
+
+    while queue:
+        current_position, path = queue.pop(0)
+
+        if current_position in visited:
+            continue
+
+        visited.add(current_position)
+
+        if current_position == goal:
+            return path
+
+        for next_position in maze.getNeighbors(current_position[0], current_position[1]):
+            if next_position not in visited:
+                queue.append((next_position, path + [next_position]))
+
+    return None  # 如果没有路径，则返回None
 
 
 
