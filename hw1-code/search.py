@@ -163,133 +163,142 @@ def reconstruct_path_corner(came_from, start, goal):
 # python3 hw1.py maps/corner/tinyCorners.txt --method astar_corner
 
 # -------------------------------------------- PART III --------------------------------------------
-def astar_multi(maze):
-    """
-    Runs A star for part 3 of the assignment in the case where there are
-    multiple objectives.
+# python3 hw1.py maps/multi/tinySearch.txt --method astar_multi
+from functools import lru_cache
 
-    @param maze: The maze to execute the search on.
+@lru_cache(maxsize=None)
+def cached_mst_cost(objectives):
+    return prim_mst_cost(objectives)
 
-    @return path: a list of tuples containing the coordinates of each state in the computed path
-    """
+def heuristic(position, objectives):
+    # Use a cached version of Prim's algorithm to calculate MST cost of remaining objectives
+    # plus the distance to the closest objective.
+    # This assumes that 'objectives' can be converted into a hashable type for caching.
+    if not objectives:
+        return 0
+    objectives_tuple = tuple(objectives)  # Ensure it is hashable for caching.
+    return cached_mst_cost(objectives_tuple) + min(manhattan_distance(position, obj) for obj in objectives)
     
-    """did not pass the mediumSearch.txt yet"""
-
+def astar_multi(maze):
     start = maze.getStart()
-    food = maze.getObjectives()  # 这应返回所有食物位置的列表或集合
-    start_state = (start, tuple(sorted(food)))
+    objectives = tuple(maze.getObjectives())
+    start_state = (start, objectives)
 
     frontier = []
     heapq.heappush(frontier, (0, start_state))
-    came_from = {}
-    cost_so_far = {}
-    came_from[start_state] = None
-    cost_so_far[start_state] = 0
+    came_from = {start_state: None}
+    cost_so_far = {start_state: 0}
 
     while frontier:
-        current = heapq.heappop(frontier)[1]
+        _, current_state = heapq.heappop(frontier)
+        current_position, current_objectives = current_state
 
-        if not current[1]:  # 检查是否所有食物都已被吃掉
+        if not current_objectives:  # All objectives have been reached
             break
 
-        for next_position in maze.getNeighbors(*current[0]):
-            next_food = update_food(next_position, current[1])
-            next_state = (next_position, next_food)
-            new_cost = cost_so_far[current] + 1
+        for next_position in maze.getNeighbors(*current_position):
+            # Directly construct the new state without intermediate variables if possible
+            new_cost = cost_so_far[current_state] + 1  # Uniform cost assumed
+            new_objectives = tuple(obj for obj in current_objectives if obj != next_position)
 
+            next_state = (next_position, new_objectives)
             if next_state not in cost_so_far or new_cost < cost_so_far[next_state]:
                 cost_so_far[next_state] = new_cost
-                priority = new_cost + heuristic_food(next_position, next_food)
+                priority = new_cost + heuristic(next_position, new_objectives)
                 heapq.heappush(frontier, (priority, next_state))
-                came_from[next_state] = current
+                came_from[next_state] = current_state
 
-    return reconstruct_path_food(came_from, start_state, current)
+    return reconstruct_path_multi(came_from, start_state, (current_position, ()))
 
-def update_food(position, food):
-    # 如果当前位置有食物，则从剩余食物中移除该位置
-    return tuple(f for f in food if f != position)
 
-def heuristic_food(position, food):
-    # 估算从当前位置到剩余所有食物的距离
-    # 这里简化为到最近食物的曼哈顿距离
-    if not food:
-        return 0
-    return min(manhattan_distance(position, f) for f in food) # manhattan distance is faster
-    # return min(euclidean_distance(position, f) for f in food)
-
-def reconstruct_path_food(came_from, start, goal):
-    # 重建路径
+def reconstruct_path_multi(came_from, start, goal):
     current = goal
     path = []
     while current != start:
         path.append(current[0])
         current = came_from[current]
-    path.append(start[0])  # 添加起始位置
-    path.reverse()  # 反转路径
+    path.append(start[0])
+    path.reverse()
     return path
 
-# python3 hw1.py maps/multi/tinySearch.txt --method astar_multi
+def prim_mst_cost(objectives):
+    if not objectives:
+        return 0
+
+    mst_cost = 0
+    connected = set([objectives[0]])
+    # Edge candidates: Map from vertex to its closest edge (distance, vertex)
+    edge_candidates = {obj: (manhattan_distance(objectives[0], obj), objectives[0]) for obj in objectives if obj != objectives[0]}
+    heap = [(dist, start, end) for end, (dist, start) in edge_candidates.items()]
+    heapq.heapify(heap)
+
+    while len(connected) < len(objectives):
+        cost, _, next_vertex = heapq.heappop(heap)
+        if next_vertex in connected:
+            continue
+        mst_cost += cost
+        connected.add(next_vertex)
+        for obj in objectives:
+            if obj not in connected:
+                new_dist = manhattan_distance(next_vertex, obj)
+                if new_dist < edge_candidates.get(obj, (float('inf'),))[0]:
+                    edge_candidates[obj] = (new_dist, next_vertex)
+                    heapq.heappush(heap, (new_dist, next_vertex, obj))
+
+    return mst_cost
 
 # -------------------------------------------- PART IV --------------------------------------------
+'''pass all the test data'''
+def greedy_best_first(maze, start, goal):
+    # Open list to store the nodes to be checked, initialized with the start node
+    open_list = [(manhattan_distance(start, goal), start)]
+    # Dictionary to store the path taken to reach each visited node
+    came_from = {start: None}
+
+    while open_list:
+        # Sort the open list to get the node with the lowest heuristic score
+        open_list.sort(key=lambda x: x[0])
+        current_distance, current_node = open_list.pop(0)
+
+        # If the goal is reached, construct the path back to the start
+        if current_node == goal:
+            path = []
+            while current_node:
+                path.append(current_node)
+                current_node = came_from[current_node]
+            return path[::-1]  # Return reversed path
+
+        # Get neighbors and add them to open list if they haven't been visited yet
+        for neighbor in maze.getNeighbors(*current_node):
+            if neighbor not in came_from:
+                open_list.append((manhattan_distance(neighbor, goal), neighbor))
+                came_from[neighbor] = current_node
+
+    return None  # If there is no path to the goal
+
 def fast(maze):
-    """
-    Runs suboptimal search algorithm for part 4.
-
-    @param maze: The maze to execute the search on.
-
-    @return path: a list of tuples containing the coordinates of each state in the computed path
-    """
-    """did not pass the bigSearch"""
-
-    # 初始化
     start = maze.getStart()
-    food = maze.getObjectives()  # 获取所有食物的位置
-    path = []  # 存储最终的路径
+    objectives = maze.getObjectives()
+    path = []
+    current = start
 
-    while food:
-        closest_food = None
-        shortest_path = None
-        min_distance = float("inf")
-
-        # 找到最近的食物点
-        for f in food:
-            temp_path = bfs_fast(maze, start, f)
-            if temp_path and len(temp_path) < min_distance:
-                closest_food = f
-                shortest_path = temp_path
-                min_distance = len(temp_path)
-
-        if shortest_path is None:
-            break  # 如果没有路径可以到达任何食物点，则退出
-
-        # 更新路径和起点
-        path += shortest_path
-        start = closest_food
-        food.remove(closest_food)  # 移除已经到达的食物点
+    while objectives:
+        # Find the closest dot
+        closest_dot = min(objectives, key=lambda dot: manhattan_distance(current, dot))
+        
+        # Find path to the closest dot using Greedy Best-First Search
+        path_to_next_dot = greedy_best_first(maze, current, closest_dot)
+        if path_to_next_dot is None:
+            raise ValueError("No path to the objective was found.")
+        
+        # Skip the first node (current position) when extending the path
+        path.extend(path_to_next_dot[1:])
+        
+        # Update the current position and remove the reached dot from the objectives
+        current = closest_dot
+        objectives.remove(closest_dot)
 
     return path
-
-def bfs_fast(maze, start, goal):
-    # 广度优先搜索找到从start到goal的路径
-    queue = [(start, [])]  # 元素格式：(当前位置, 到达该位置的路径)
-    visited = set()
-
-    while queue:
-        current_position, path = queue.pop(0)
-
-        if current_position in visited:
-            continue
-
-        visited.add(current_position)
-
-        if current_position == goal:
-            return path
-
-        for next_position in maze.getNeighbors(current_position[0], current_position[1]):
-            if next_position not in visited:
-                queue.append((next_position, path + [next_position]))
-
-    return None  # 如果没有路径，则返回None
 
 
 
@@ -353,3 +362,89 @@ files and classes when code is run, so be careful to not modify anything else.
 #         goal = path[goal]
 #         reverse_path.append(goal)
 #     return list(reversed(reverse_path)) # return the path 
+
+
+# def astar_multi(maze):
+#     """
+#     Runs A* for part 3 of the assignment in the case where there are
+#     multiple objectives.
+
+#     @param maze: The maze to execute the search on.
+#     @return path: a list of tuples containing the coordinates of each state in the computed path
+#     """
+
+#     def heuristic(position, objectives):
+#         # Use Prim's algorithm to calculate MST cost of remaining objectives
+#         # plus the distance to the closest objective
+#         if not objectives:
+#             return 0
+#         return prim_mst_cost(objectives) + min(manhattan_distance(position, obj) for obj in objectives)
+
+#     start = maze.getStart()
+#     objectives = tuple(maze.getObjectives())
+#     start_state = (start, objectives)
+
+#     frontier = []
+#     heapq.heappush(frontier, (0, start_state))
+#     came_from = {start_state: None}
+#     cost_so_far = {start_state: 0}
+
+#     while frontier:
+#         current_cost, current_state = heapq.heappop(frontier)
+#         current_position, current_objectives = current_state
+
+#         if not current_objectives:  # All objectives have been reached
+#             break
+
+#         for next_position in maze.getNeighbors(*current_position):
+#             new_objectives = tuple(obj for obj in current_objectives if obj != next_position)
+#             next_state = (next_position, new_objectives)
+#             new_cost = cost_so_far[current_state] + 1  # Assume uniform cost
+
+#             if next_state not in cost_so_far or new_cost < cost_so_far[next_state]:
+#                 cost_so_far[next_state] = new_cost
+#                 priority = new_cost + heuristic(next_position, new_objectives)
+#                 heapq.heappush(frontier, (priority, next_state))
+#                 came_from[next_state] = current_state
+
+#     return reconstruct_path(came_from, start_state, (current_position, ()))
+
+# def reconstruct_path(came_from, start, goal):
+#     current = goal
+#     path = []
+#     while current != start:
+#         path.append(current[0])
+#         current = came_from[current]
+#     path.append(start[0])
+#     path.reverse()
+#     return path
+
+
+# def prim_mst_cost(objectives):
+#     """Calculates the total weight of the MST using Prim's algorithm."""
+#     if not objectives:
+#         return 0
+
+#     # Initialize the MST and its total cost
+#     mst_cost = 0
+#     vertices = list(objectives)
+#     connected = {vertices[0]}  # Start with the first vertex in a set for quick lookup
+#     edges = []
+
+#     # Populate initial edges from the first connected vertex to all other vertices
+#     for vertex in vertices[1:]:
+#         heapq.heappush(edges, (manhattan_distance(vertices[0], vertex), vertex))
+
+#     while len(connected) < len(vertices):
+#         # Pop the shortest edge
+#         cost, next_vertex = heapq.heappop(edges)
+#         if next_vertex not in connected:
+#             # Add the vertex to the MST
+#             connected.add(next_vertex)
+#             mst_cost += cost
+#             # Add new edges from this vertex to all others not yet in the MST
+#             for v in vertices:
+#                 if v not in connected:
+#                     heapq.heappush(edges, (manhattan_distance(next_vertex, v), v))
+
+#     return mst_cost
