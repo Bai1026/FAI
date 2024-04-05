@@ -25,7 +25,7 @@ https://github.com/karlapalem/UC-Berkeley-AI-Pacman-Project/blob/master/multiage
 https://chat.openai.com/c/ec864d67-a63e-4b21-9767-0cfa3dea534f
 """
 
-""" For Q1, this gets 4/4 currently."""
+""" For Q1"""
 class ReflexAgent(Agent):
     """
       A reflex agent chooses an action at each choice point by examining
@@ -282,8 +282,8 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
                 return self.evaluationFunction(gameState)
             maxvalue = -999999
             actions = gameState.getLegalActions(0)
-            totalmaxvalue = 0
-            numberofactions = len(actions)
+            # totalmaxvalue = 0
+            # numberofactions = len(actions)
             for action in actions:
                 successor= gameState.generateSuccessor(0,action)
                 maxvalue = max (maxvalue,expectLevel(successor,currDepth,1))
@@ -320,21 +320,6 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
                 returnAction = action
                 currentScore = score
         return returnAction
-    
-# class ExpectimaxAgent(MultiAgentSearchAgent):
-#     """
-#       Your expectimax agent (question 4)
-#     """
-
-#     def getAction(self, gameState: GameState):
-#         """
-#         Returns the expectimax action using self.depth and self.evaluationFunction
-
-#         All ghosts should be modeled as choosing uniformly at random from their
-#         legal moves.
-#         """
-#         "*** YOUR CODE HERE ***"
-#         util.raiseNotDefined()
 
 
 """For Q5"""
@@ -355,7 +340,6 @@ def betterEvaluationFunction(currentGameState):
     # Using list comprehension for more Pythonic code
     foodList = newFood.asList()
     # Import statement moved to top (it's assumed to be at the module level for this snippet)
-    from util import manhattanDistance
     foodDistances = [manhattanDistance(newPos, pos) for pos in foodList if foodList]
 
     ghostPositions = [ghost.getPosition() for ghost in newGhostStates]
