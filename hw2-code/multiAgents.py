@@ -273,6 +273,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
           All ghosts should be modeled as choosing uniformly at random from their
           legal moves.
+          
         """
         "*** YOUR CODE HERE ***"
         #Used only for pacman agent hence agentindex is always 0.
