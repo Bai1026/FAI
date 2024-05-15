@@ -70,6 +70,21 @@ def normalize(X: np.ndarray) -> np.ndarray:
     return normalized_X
 
 
+def standardize(X: np.ndarray) -> np.ndarray:
+    """Standardize the given numpy array to have zero mean and unit variance along each feature.
+
+    Args:
+        X (np.ndarray): The input features array to standardize.
+
+    Returns:
+        np.ndarray: The standardized version of the input array.
+    """
+    mean_values = np.mean(X, axis=0)
+    std_values = np.std(X, axis=0)
+    standardized_X = (X - mean_values) / std_values
+    return standardized_X
+
+
 def encode_labels(y: np.ndarray) -> np.ndarray:
     """
     Encode labels to integers.
@@ -357,32 +372,6 @@ class RandomForest:
             sampled_y = y[bootstrap_indices]
 
             tree.fit(sampled_X, sampled_y)
-
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        # TODO: 2%
-        # Hint: Predict the output for each tree and combine the predictions
-        # based on the model type (majority voting for classification or averaging
-        # for regression).
-        n_samples = X.shape[0]
-
-        if self.model_type == "classifier":
-            predictions = []
-            for tree in self.trees:
-                predictions.append(tree.predict(X))
-            
-            matrix = np.array(predictions).T
-            res = np.zeros(n_samples)
-            for i in range(n_samples):
-                values, counts = np.unique(matrix[i], return_counts=True)
-                res[i] = values[np.argmax(counts)]
-            return res
-
-        else:
-            res = np.zeros(n_samples)
-            for tree in self.trees:
-                res += tree.predict(X)
-            res /= len(self.trees)
-            return res
         
     def predict(self, X: np.ndarray) -> np.ndarray:
         # TODO: 2%
@@ -431,10 +420,14 @@ def main():
     # Iris dataset - Classification
     X_train, X_test, y_train, y_test = train_test_split(iris, "class")
     X_train, X_test = normalize(X_train), normalize(X_test)
+    # X_train, X_test = standardize(X_train), standardize(X_test)
     y_train, y_test = encode_labels(y_train), encode_labels(y_test)
 
     # acc = 0.6666
-    logistic_regression = LinearModel(model_type="logistic")
+    # logistic_regression = LinearModel(model_type="logistic")
+    # logistic_regression = LinearModel(learning_rate=0.03, model_type="logistic")
+
+    logistic_regression = LinearModel(iterations=3000, model_type="logistic")
 
     # acc = 0.9777
     # logistic_regression = LinearModel(learning_rate=0.03, iterations=20000, model_type="logistic")
