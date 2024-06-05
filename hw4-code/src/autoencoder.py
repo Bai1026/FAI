@@ -21,13 +21,16 @@ class Autoencoder(nn.Module):
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, encoding_dim),
             nn.Linear(encoding_dim, encoding_dim//2),
+            # nn.Linear(encoding_dim//2, encoding_dim//4),
             nn.ReLU()
         )
 
         # decoder: encoding_dim//2 -> encoding_dim -> input_dim
         self.decoder = nn.Sequential(
+            # nn.Linear(encoding_dim//4, encoding_dim//2),
             nn.Linear(encoding_dim//2, encoding_dim),
             nn.Linear(encoding_dim, input_dim),
+            # nn.Sigmoid()
         )
     
     def forward(self, x):
@@ -125,6 +128,12 @@ class DenoisingAutoencoder(Autoencoder):
         self.train()
         criterion = nn.MSELoss()
         optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        # optimizer = optim.AdamW(self.parameters(), lr=1e-3)
+        # optimizer = optim.Adadelta(self.parameters(), lr=1e-3)
+        # optimizer = optim.Adagrad(self.parameters(), lr=1e-3)
+        # optimizer = optim.RMSprop(self.parameters(), lr=1e-3)
+        # optimizer = optim.SGD(self.parameters(), lr=1e-3)
+
         dataloader = DataLoader(torch.tensor(X, dtype=torch.float), batch_size=batch_size, shuffle=True)
         
         loss_history = []
