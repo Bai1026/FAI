@@ -17,3 +17,12 @@
 - Apply this pipeline to a classification task and a regression task.
 - Including preprocessing, models, training, and evaluation.
 - Dataset: [Iris dataset](https://archive.ics.uci.edu/ml/datasets/iris) for classification and [Boston Housing dataset](https://raw.githubusercontent.com/selva86/datasets/master/BostonHousing.csv) for regression.
+
+
+### HW4 - Implement PCA, Autodecoder, DenosingAutoencoder
+- With different observation of these 3 models
+  - Reconstruct images.
+  - Different Eigenvectors of PCA
+  - Different Architecture of DenosingAutoencoder
+  - Different Optimizers
+  - Observation of loss history
